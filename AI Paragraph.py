@@ -26,7 +26,6 @@ def generar_con_failover(prompt):
                 contents=prompt
             )
             return response.text # Éxito: corta el loop y devuelve el texto
-            
         except exceptions.ResourceExhausted:
             # ERROR 429 detectado
             print(f"⚠️ Key {i+1} agotada (Cuota excedida).")
