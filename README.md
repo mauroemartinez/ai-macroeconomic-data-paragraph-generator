@@ -1,203 +1,143 @@
-# 🤖 AI Macroeconomic Data Paragraph Generator 📊
+# 🤖 AI Macroeconomic Data Paragraph Generator (Analytics Engineer Component)
 
-**⚠️ NOTA IMPORTANTE:** Este proyecto es una **versión previa y modular** que será integrada en el pipeline principal del RPA. Ver el proyecto completo en: [RPA - Exchange Rate Scrapping Automatic Mailing](https://github.com/mauroemartinez/RPA-exchange-rate-scrapping-automatic-mailing)
+[![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?style=flat&logo=microsoft-sql-server&logoColor=white)](https://www.microsoft.com/sql-server)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org)
+[![Gemini API](https://img.shields.io/badge/Gemini_API-1A73E8?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
 
----
-
-## 📝 Descripción
-
-Este módulo genera **párrafos de análisis profesional en español** sobre datos macroeconómicos argentinos utilizando la **API de Gemini** (Google's Generative AI). Toma datos diarios de tipos de cambio, tasas de interés y riesgo país, y produce análisis narrativo que será integrado en reportes de mailing automático.
-
-El sistema es **inteligente**: solo menciona indicadores cuando su variación es significativa, evitando ruido en la narrativa. Implementa **API key rotation** para manejar cuotas de forma robusta.
+**🌐 Enterprise Pipeline Integration:** This analytical engineering component acts as a decoupled module within the primary automation pipeline. The core data ingestion and orchestration architecture can be found at: [RPA - Exchange Rate Scrapping Automatic Mailing](https://github.com/mauroemartinez/RPA-exchange-rate-scrapping-automatic-mailing).
 
 ---
 
-## 🚀 Funcionalidades Clave
+## 📝 Executive Summary
 
-* **Generación de Análisis con IA:** Integración con Gemini API para narrativa profesional y contextualizada.
-* **Monitoreo Inteligente de Indicadores:**
-  - **BCRA TEA:** Se menciona solo si varía más de ±0.2% (cambio significativo)
-  - **FED TEA:** Se menciona ante cualquier cambio (rara vez varía)
-  - **Tipos de Cambio (Blue, MEP, Billete):** Análisis de tendencias de 25 ruedas (~ 1 mes hábil)
-  - **Riesgo País:** Comparativas diarias y mensuales
+This component automates the **Data Storytelling** layer within an Argentine macroeconomic data pipeline. Utilizing the official Gemini AI SDK (**`google-genai`**), the script extracts historical time series directly from a relational database engine, processes key macroeconomic variations by applying conditional business logic, and generates a structured financial narrative in natural language.
 
-* **Manejo Robusto de Errores:** Rotación automática entre múltiples API keys ante límites de cuota (HTTP 429).
-* **Data Processing:** Validación de historial mínimo, cálculos de variación y formateo de contexto.
-* **Output en Español:** Párrafos profesionales, secos y disclaimer legal incluido.
+The core engineering value rests on two architectural pillars:
+1. **Dynamic Context Curation (Smart Prompt Engineering):** Prevents narrative noise by dynamically filtering out static financial variables, exposing only the indicators that exhibit significant fluctuations (outliers and trend shifts).
+2. **High-Availability API Ingestion:** Implements a robust **Failover and Key Rotation Engine** to guarantee pipeline continuity against rate limits (HTTP 429) or external API infrastructure downtime.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🛠️ Architecture & Data Flow
 
-### 🤖 AI & APIs
-* `google-genai`: Cliente oficial de Gemini API con manejo de excepciones específicas.
-* `google-api-core`: Utilidades para detectar errores de cuota (ResourceExhausted).
+The component operates via secure, parameterized transactions to guarantee the persistence and integrity of the generated metadata:
 
-### 🧮 Procesamiento de Datos
-* `pandas`: Lectura y manipulación de CSV, ordenamiento temporal.
-* `python-dotenv`: Gestión segura de API keys en variables de entorno.
-
-### 🔒 Seguridad
-* Variables de entorno para API keys (nunca hardcodeadas).
-* Soporte para múltiples keys con failover automático.
+[ SQL Server (Fact_Mercado_Macro) ]
+│
+▼ (Extracts 26-row historical window via SQLAlchemy)
+[ Financial Logic Engine (Pandas) ] ───► Evaluates Dynamic Thresholds (BCRA / FED TEA)
+│
+▼ (Structured context injection)
+[ Gemini AI Client ] ◄───► [ Failover Engine ] (Automatic Key Rotation on 429 Errors)
+│
+▼ (Returns standardized analytical paragraph)
+[ Transact-SQL (UPDATE) ]
+│
+▼
+[ Relational Persistence (Target Column: ai_paragraph) ]
 
 ---
 
-## 📊 Flujo de Datos
+## 🚀 Engineering Features
 
+* **Relational Extraction Layer:** Migrated from static file processing (CSV) to optimized, native T-SQL queries leveraging `SQLAlchemy`.
+* **Rolling Trend Analysis:** Evaluates a 25-business-day rolling window (~1 business month) to identify macro trends in parallel exchange rates (Blue, MEP, Billete) and Country Risk.
+* **Conditional Threshold Triggers:**
+  * **BCRA TEA:** Included dynamically in the prompt only if the daily variation exceeds an absolute threshold of $\mid \Delta \text{ Daily} \mid > 0.2\%$.
+  * **FED TEA:** Reactive tracking; explicitly mentioned upon any nominal shift ($>0\%$).
+* **Transactional Persistence (ACID):** The generated paragraph is committed securely (`engine.begin()`) back to the relational engine for historical auditing and consumption by downstream services (Mailing/Power BI).
+
+---
+
+## 📦 Tech Stack
+
+* **Generative AI Suite:** `google-genai` (Modern SDK) & `google-api-core` (Advanced exception handling for `ResourceExhausted`).
+* **Data Engineering & Connectivity:** `pandas` for data manipulation, `SQLAlchemy` as the ORM abstraction layer, and `pyodbc` as the native driver for Microsoft SQL Server (ODBC Driver 18).
+* **Environment Management:** `python-dotenv` for secure secrets isolation.
+
+---
+
+## 📥 Infrastructure & Prerequisites
+
+### Relational Schema Requirements (T-SQL)
+The script expects the target table `Fact_Mercado_Macro` to be structured as follows:
+
+```sql
+CREATE TABLE Fact_Mercado_Macro (
+    Fecha DATE NOT NULL CONSTRAINT PK_Fact_Mercado PRIMARY KEY,
+    TCV_Blue DECIMAL(18,2),
+    TCV_MEP DECIMAL(18,2),
+    TCV_Billete DECIMAL(18,2),
+    riesgo_pais DECIMAL(18,2),
+    bcra_tea DECIMAL(18,4),
+    fed_tea DECIMAL(18,4),
+    ai_paragraph VARCHAR(MAX) NULL -- Pipeline target column for GenAI text
+);
 ```
-CSV (datos históricos)
-    ↓
-Validación de historial mínimo (26 registros)
-    ↓
-Extracción de puntos de control (hoy, ayer, hace 25 ruedas)
-    ↓
-Cálculo de variaciones y contexto
-    ↓
-Evaluación de umbrales (BCRA TEA >0.2%, FED TEA >0%)
-    ↓
-Construcción de prompt inteligente
-    ↓
-Llamada a Gemini API (con rotación de keys)
-    ↓
-Párrafo generado en español
+---
+
+### Environment Configuration (`.env`)
+Create a `.env` file in the root directory (ensuring it is explicitly excluded in your `.gitignore`):
+
+```ini
+# Local/Production Database Connection
+DB_SERVER=localhost\SQLEXPRESS
+DB_NAME=MacroeconomicAnalytics
+
+# GenAI Credentials (Failover Cluster)
+GEMINI_API_KEY_1=your_primary_api_key
+GEMINI_API_KEY_2=your_secondary_api_key
 ```
 
 ---
 
-## 📥 Requisitos
+## 🚀 Deployment & Usage
+# 1. Clone the repository and navigate to the directory
+git clone [https://github.com/mauroemartinez/ai-macroeconomic-data-paragraph-generator.git](https://github.com/mauroemartinez/ai-macroeconomic-data-paragraph-generator.git)
+cd ai-macroeconomic-data-paragraph-generator
 
-### Archivos Necesarios
-- **CSV con datos históricos** que contenga columnas:
-  - `Fecha`
-  - `TCV_Blue` (Dólar Blue)
-  - `TCV_MEP` (Dólar MEP)
-  - `TCV_Billete` (Dólar Billete)
-  - `bcra_tea` (Tasa Efectiva del BCRA)
-  - `fed_tea` (Tasa Efectiva de la FED)
-  - `riesgo_pais` (Risk País en puntos)
+# 2. Initialize and activate the virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows use: .\venv\Scripts\activate
 
-### Variables de Entorno (.env)
-```
-RUTA_BBDD=C:\ruta\a\tu\archivo.csv
-GEMINI_API_KEY_1=tu_api_key_1
-GEMINI_API_KEY_2=tu_api_key_2
-```
-
-Obtén tus API keys en: [Google AI Studio](https://aistudio.google.com)
-
----
-
-## 🚀 Uso
-
-```bash
-# Instalar dependencias
+# 3. Install standardized production dependencies
 pip install -r requirements.txt
 
-# Ejecutar
-python "AI Paragraph.py"
-```
-
-**Salida esperada:**
-```
-🤖 Analizando datos del 29/04/2026...
-
---- PÁRRAFO GENERADO ---
-Al 29/04/2026, la brecha del 1,56% entre el Blue ($1415,0) y el MEP 
-($1437,45) posiciona al paralelo como opción más económica siendo la 
-tendencia descendente mensual del 1,39%. El riesgo país consolida una 
-baja de 3 puntos a 584 pts, mientras que la TEA del BCRA (48,07%) 
-evidencia aceleración mensual del 7,52%...
-```
+# 4. Execute the AI pipeline
+python ia_generator.py
 
 ---
 
-## 🔄 Lógica de Decisión de Indicadores
+## Expected Execution Logs
+🔌 Conectando a SQL Server para extraer historial...
+🤖 Solicitando párrafo a Gemini para el 22/05/2026...
+💾 Guardando reporte de IA en la base de datos para la fecha 2026-05-22...
+✅ Columna ai_paragraph actualizada con éxito en SQL Server.
 
-| Indicador | Condición | Acción |
-|-----------|-----------|--------|
-| BCRA TEA | Variación diaria > ±0.2% | ✅ Incluir en párrafo |
-| BCRA TEA | Variación diaria ≤ ±0.2% | ❌ Omitir |
-| FED TEA | Variación diaria > 0% (cualquier cambio) | ✅ Incluir en párrafo |
-| FED TEA | Sin variación | ❌ Omitir |
-| Blue/MEP/Billete | Siempre | ✅ Siempre incluir |
-| Riesgo País | Siempre | ✅ Siempre incluir |
 
 ---
 
-## 🛡️ Manejo de Errores
+## 🔄 Business Logic Matrix (Inclusion Rules)
 
-### API Key Rotation
-Si la API Key 1 alcanza límite de cuota (HTTP 429):
-```
-⚠️ Key 1 agotada (Cuota excedida).
-🔄 Reintentando con la siguiente API Key...
-```
-
-Si todas las keys se agotan:
-```
-❌ Se agotaron todas las API Keys por límite de cuota (429).
-```
-
-Otros errores (red, validación, etc.) detienen la ejecución inmediatamente.
+| Financial Indicator | Evaluation Metric | Prompt Inclusion Rule |
+|:---|:---|:---|
+| **Dólar Blue / MEP / Billete** | Daily & Monthly Variation | **Always Included** (Core business asset) |
+| **Country Risk (JP Morgan)** | Nominal Delta (Points) | **Always Included** (Sovereign metric) |
+| **TEA BCRA** | Absolute Percentage Change | **Conditional:** Only if $\mid \Delta \text{ Daily} \mid > 0.2\%$ |
+| **TEA FED** | Nominal Variation | **Conditional:** Only if $\mid \Delta \text{ Daily} \mid > 0\%$ |
 
 ---
 
-## 🏔️ Roadmap: Integración en RPA Principal
+## 🏔️ Project Status & Integration Roadmap
 
-- [ ] **Fase 1 (Actual):** Modulo standalone de generación de párrafos ✅
-- [ ] **Fase 2:** Integración en pipeline de mailing automático
-- [ ] **Fase 3:** Almacenamiento de párrafos generados en SQL Server
-
-Ver: [RPA-exchange-rate-scrapping-automatic-mailing](https://github.com/mauroemartinez/RPA-exchange-rate-scrapping-automatic-mailing)
-
----
-
-## 📚 Estructura del Código
-
-```python
-# 1. Configuración Inicial
-load_dotenv()
-RUTA = os.getenv("RUTA_BBDD")
-API_KEYS = [key1, key2]
-
-# 2. Función de Failover
-def generar_con_failover(prompt):
-    # Rotación inteligente de keys
-
-# 3. Procesamiento de Datos
-df = pd.read_csv(RUTA)
-# Extracción de puntos de control
-
-# 4. Evaluación de Umbrales
-tea_var_diaria = calc_var(tea_hoy, ayer['bcra_tea'])
-tea_strong_change = abs(tea_var_diaria) > 0.2
-
-# 5. Construcción de Prompt
-prompt_final = f"""Actuá como analista financiero..."""
-
-# 6. Generación
-reporte = generar_con_failover(prompt_final)
-```
+- [x] **Phase 1:** Functional standalone pipeline component (Modular Engine).
+- [x] **Phase 2:** Database migration from flat files (CSV) to relational storage (T-SQL).
+- [x] **Phase 3:** Parameterized transactional write operations to mitigate SQL injection.
+- [ ] **Phase 4:** Package as an importable module (`import ia_generator`) inside the main RPA orchestrator.
 
 ---
 
-## 🔐 Consideraciones de Seguridad
+## 📬 Contact
 
-✅ **API keys en `.env`**, nunca en código fuente
-✅ **`.gitignore`** excluye `.env` y datos sensibles
-✅ Manejo seguro de excepciones sin exponer tokens
-✅ Validación de datos antes de procesamiento
-
----
-
-## 📬 Contribuciones & Feedback
-
-Este es un módulo educativo y de portfolio. Si tienes sugerencias o quieres contribuir:
-- 📧 martinezmauroezequiel@gmail.com
-- 🔗 [LinkedIn](https://www.linkedin.com/in/mauro-martinez-ba/)
-
----
-
-**Última actualización:** Abril 2026  
-**Versión:** 1.0 (Pre-release para integración)
+* **Email:** martinezmauroezequiel@gmail.com
+* **Professional Networ:** [LinkedIn Profile](https://www.linkedin.com/in/mauroemartinez/)

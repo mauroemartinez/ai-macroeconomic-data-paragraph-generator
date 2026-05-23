@@ -3,11 +3,20 @@ import pandas as pd
 from dotenv import load_dotenv
 from google import genai
 from google.api_core import exceptions # Para detectar específicamente el error 429
+from sqlalchemy import create_engine
+import urllib
 
-# 1. Configuración Inicial
+# Configuración Inicial
 load_dotenv()
 RUTA = os.getenv("RUTA_BBDD")
 API_KEYS = [os.getenv("GEMINI_API_KEY_1"), os.getenv("GEMINI_API_KEY_2")]
+params = urllib.parse.quote_plus(
+    r'DRIVER={ODBC Driver 17 for SQL Server};'
+    r'SERVER=localhost\SQLEXPRESS;'
+    r'DATABASE=MacroeconomicAnalytics;'
+    r'Trusted_Connection=yes;'
+)
+engine = create_engine(f"mssql+pyodbc:///?odbc_connect={params}")
 
 def generar_con_failover(prompt):
     """
@@ -15,7 +24,7 @@ def generar_con_failover(prompt):
     Si el error es de otro tipo o se agotan las Keys, detiene la ejecución.
     """
     for i, key in enumerate(API_KEYS):
-        if not key:
+        if not key: 
             continue
         
         try:
@@ -39,14 +48,26 @@ def generar_con_failover(prompt):
             print(f"❌ Error técnico inesperado: {e}")
             raise e
 
-# 2. Procesamiento de Datos y Lógica de Negocio
+# Procesamiento de Datos
 try:
-    # Carga y ordenamiento cronológico
-    df = pd.read_csv(RUTA, encoding='latin1')
+    query = """
+        SELECT 
+            Fecha, TCV_MEP, TCV_Blue, TCV_Billete, riesgo_pais, bcra_tea, fed_tea 
+        FROM Fact_Mercado_Macro 
+        ORDER BY Fecha ASC;
+    """
+    
+    print("🔌 Conectando a SQL Server para extraer historial...")
+    
+    df = pd.read_sql(query, con=engine)
+    
+    # Limpieza estándar por si las dudas
     df.columns = df.columns.str.strip()
     df['Fecha'] = pd.to_datetime(df['Fecha']) 
-    df = df.sort_values(by='Fecha', ascending=True).reset_index(drop=True)
 
+    # Validación de historial mínimo para comparar 25 ruedas (aprox. 1 mes hábil)
+    if len(df) < 26:
+        raise Exception(f"Historial insuficiente en SQL Server. La tabla solo tiene {len(df)} registros.")
     # Validación de historial mínimo para comparar 25 ruedas (aprox. 1 mes hábil)
     if len(df) < 26:
         raise Exception(f"Historial insuficiente. El CSV solo tiene {len(df)} registros.")
@@ -104,7 +125,7 @@ try:
     # Check if FED TEA changed at all (any movement)
     fed_var_diaria = calc_var(fed_tea_hoy, ayer['fed_tea'])
     fed_any_change = abs(fed_var_diaria) > 0
-    # 3. Prompt con instrucciones de formato estrictas
+    # Prompt con instrucciones de formato estrictas
     prompt_final = f"""
     Actuá como analista financiero Senior. Redactá un párrafo de 3-4 líneas.
     DATOS REALES AL {contexto_masticado['fecha']}:
@@ -128,6 +149,6 @@ try:
     
     print("\n--- PÁRRAFO GENERADO ---")
     print(reporte)
-
+    
 except Exception as e:
     print(f"\n❌ Proceso interrumpido: {e}")
