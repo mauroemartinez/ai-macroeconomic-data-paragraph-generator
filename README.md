@@ -3,8 +3,10 @@
 [![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?style=flat&logo=microsoft-sql-server&logoColor=white)](https://www.microsoft.com/sql-server)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org)
 [![Gemini API](https://img.shields.io/badge/Gemini_API-1A73E8?style=flat&logo=google&logoColor=white)](https://ai.google.dev/)
+[![Status](https://img.shields.io/badge/Status-Merged_&_Archived-6c757d?style=flat)](https://github.com/mauroemartinez/RPA-exchange-rate-scrapping-automatic-mailing)
 
-**🌐 Enterprise Pipeline Integration:** This analytical engineering component acts as a decoupled module within the primary automation pipeline. The core data ingestion and orchestration architecture can be found at: [RPA - Exchange Rate Scrapping Automatic Mailing](https://github.com/mauroemartinez/RPA-exchange-rate-scrapping-automatic-mailing).
+> ⚠️ **This repository has been archived.** The module developed here was successfully integrated as a production component into the main RPA pipeline. Active development continues at:
+> **[🚀 RPA - Exchange Rate Scrapping Automatic Mailing](https://github.com/mauroemartinez/RPA-exchange-rate-scrapping-automatic-mailing)**
 
 ---
 
@@ -133,7 +135,7 @@ python ia_generator.py
 - [x] **Phase 1:** Functional standalone pipeline component (Modular Engine).
 - [x] **Phase 2:** Database migration from flat files (CSV) to relational storage (T-SQL).
 - [x] **Phase 3:** Parameterized transactional write operations to mitigate SQL injection.
-- [ ] **Phase 4:** Package as an importable module (`import ia_generator`) inside the main RPA orchestrator.
+- [X] **Phase 4:** Package as an importable module (`import ia_generator`) inside the main RPA orchestrator.
 
 ---
 
